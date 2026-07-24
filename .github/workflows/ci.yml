@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv venv && uv pip install -e ".[dev]"
+
+      - name: Lint
+        run: uv run ruff check src mcp_server evals tests
+
+      - name: Format check
+        run: uv run ruff format --check src mcp_server evals tests
+
+      - name: Typecheck
+        run: uv run mypy src mcp_server
+
+      # Hermetic: no ANTHROPIC_API_KEY is set, so any test that would hit the network
+      # must be marked `live` and is deselected here. A network call in CI is a bug.
+      - name: Test
+        run: uv run pytest -m "not live"
+
+      - name: Scenario generation must validate
+        run: |
+          uv run python -m mcp_server.env.generator --scenarios 30 --out /tmp/scenarios.jsonl \
+            | tee /tmp/gen.log
+          grep -q "validation failures: 0" /tmp/gen.log
+
+      - name: End-to-end run against the mock model
+        run: uv run aegis run --scenario /tmp/scenarios.jsonl:1 --mock

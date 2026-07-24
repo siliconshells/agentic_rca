@@ -1,0 +1,71 @@
+# One command brings up the whole system: the MCP server, the API + harness, the dashboard, and
+# a Jaeger instance for the span tree. `docker compose up --build` and open http://localhost:5173.
+#
+# ANTHROPIC_API_KEY is read from the environment (or a .env file). Without it, only --mock runs work.
+
+services:
+  mcp:
+    build:
+      context: .
+      target: runtime
+    command:
+      ["python", "-m", "mcp_server.server", "--transport", "http", "--host", "0.0.0.0",
+       "--port", "8765", "--scenarios", "/app/evals/scenarios.jsonl"]
+    environment:
+      AEGIS_LOG_JSON: "1"
+    ports:
+      - "8765:8765"
+    healthcheck:
+      # TCP liveness only. A GET/POST probe would need MCP's Accept headers (a bare GET returns
+      # 406), so we just confirm the port is accepting connections — the real readiness signal.
+      test: ["CMD", "python", "-c",
+             "import socket,sys; socket.create_connection(('localhost',8765),2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      target: runtime
+    command:
+      ["uvicorn", "aegis.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AEGIS_MCP_URL: "http://mcp:8765/mcp"
+      AEGIS_OTEL_ENDPOINT: "http://jaeger:4318/v1/traces"
+      AEGIS_LOG_JSON: "1"
+      AEGIS_SCENARIOS_PATH: "/app/evals/scenarios.jsonl"
+    ports:
+      - "8000:8000"
+    volumes:
+      - aegis-data:/data
+    depends_on:
+      mcp:
+        condition: service_healthy   # now that the healthcheck is a real TCP probe
+      jaeger:
+        condition: service_started
+
+  web:
+    build:
+      context: ./web
+    environment:
+      # Vite's preview server proxies /api to the backend using container networking, so the
+      # target is the api service name — not localhost, which would resolve inside this container.
+      VITE_API_BASE: "http://api:8000"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.73.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"  # UI
+      - "4318:4318"    # OTLP/HTTP collector
+
+volumes:
+  aegis-data:

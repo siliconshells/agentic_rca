@@ -1,0 +1,83 @@
+[project]
+name = "aegis"
+version = "0.1.0"
+description = "A production agentic harness for on-call incident triage and root-cause analysis"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Leonard Eshun" }]
+
+dependencies = [
+    "anthropic>=0.118.0",
+    "mcp>=1.28.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "sse-starlette>=2.1.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "typer>=0.15.0",
+    "rich>=13.9.0",
+    "httpx>=0.27.0",
+    "opentelemetry-api>=1.44.0",
+    "opentelemetry-sdk>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "asgi-lifespan>=2.1.0",
+]
+charts = ["matplotlib>=3.9.0", "pandas>=2.2.0"]
+
+[project.scripts]
+aegis = "aegis.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aegis", "mcp_server"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "ASYNC", "S"]
+ignore = ["S101", "S311"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B011"]
+"evals/**" = ["S"]
+# Exception names read as conditions, not errors: `raise BudgetExceeded` is clearer at the call
+# site than `raise BudgetExceededError`. Deliberate, and scoped to the one module that defines them.
+"src/aegis/harness/errors.py" = ["N818"]
+# Agent prompts are prose; wrapping them to 100 cols hurts readability and risks changing the
+# bytes the model sees (and therefore the cache key). RUF001 flags Unicode the prompts use on purpose.
+"src/aegis/agents/prompts.py" = ["E501", "RUF001"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+plugins = []
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "evals.*"]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q --strict-markers"
+markers = [
+    "live: hits the real Anthropic API and costs money (deselected by default)",
+]
