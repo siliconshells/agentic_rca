@@ -3,15 +3,15 @@
 **A production agentic harness for on-call incident triage and root-cause analysis.**
 
 A coordinator agent plans hypotheses about a live incident, fans out parallel investigators
-against a custom MCP server, adversarially verifies what survives, and writes a cited RCA —
+against a custom MCP server, adversarially verifies what survives, and writes a cited RCA -
 pausing for human approval before it proposes anything that touches production.
 
-> **New here?** Read **[How Aegis works — the 2-minute version](docs/HOW_IT_WORKS.md)**: what it
+> **New here?** Read **[How Aegis works - the 2-minute version](docs/HOW_IT_WORKS.md)**: what it
 > does, what an RCA is, and where the (fake) telemetry comes from, with diagrams. No setup required.
 
 The agent loop is **hand-written on the Anthropic Messages API**. Retries, token/cost budgets,
 prompt-cache prefixes, context management, tool permissions, crash recovery, and OpenTelemetry
-tracing are the project — not incidental plumbing. Everything runs against a **deterministic
+tracing are the project. Everything runs against a **deterministic
 seeded incident world with ground-truth root causes**, so accuracy, evidence precision, injection
 resistance, cost, and latency are all *measured*, with ablations rather than anecdotes.
 
@@ -19,7 +19,7 @@ resistance, cost, and latency are all *measured*, with ablations rather than ane
 flowchart TB
     UI["React dashboard"] <-->|SSE + approvals| API["FastAPI"]
     API --> H
-    subgraph H["Harness — owns the agent loop"]
+    subgraph H["Harness - owns the agent loop"]
         direction TB
         HH["retries · budget · cache · HITL · compaction · checkpoints · OTel"]
     end
@@ -50,7 +50,7 @@ naturally needs a human gate (remediation is a write action).
 
 ---
 
-## Quickstart — hermetic, no API key, no spend
+## Quickstart - hermetic, no API key, no spend
 
 ```bash
 uv venv && uv pip install -e ".[dev,charts]"
@@ -61,8 +61,8 @@ uv run aegis run --scenario evals/scenarios.jsonl:3 --mock   # a full run agains
 ```
 
 The `--mock` path uses an in-process MCP server and a deterministic offline model, so the whole
-pipeline — the agent loop, tool execution, structured output, budget/cache accounting, the event
-stream — runs end to end with nothing external. It is the CI gate.
+pipeline - the agent loop, tool execution, structured output, budget/cache accounting, the event
+stream - runs end to end with nothing external. It is the CI gate.
 
 ### The dashboard
 
@@ -86,11 +86,11 @@ A live run is interactive: any world-mutating action pauses and prompts you on t
 
 ## The custom MCP server
 
-All three MCP primitives, each doing real work — not one tool wrapped three ways.
+All three MCP primitives, each doing real work - not one tool wrapped three ways.
 
-**Tools** (model-controlled — chosen turn by turn from what the last result showed):
+**Tools** (model-controlled - chosen turn by turn from what the last result showed):
 `query_metrics`, `query_logs`, `list_deploys`, `sample_traces`, `get_trace`,
-`get_dependency_graph`, `search_similar_incidents`, and `propose_remediation` — a **write**, policy
+`get_dependency_graph`, `search_similar_incidents`, and `propose_remediation` - a **write**, policy
 `ask`, which pauses the run for human approval.
 
 **Resources** (app-controlled, incident-independent): `catalog://services`, `runbook://{service}`,
@@ -100,7 +100,7 @@ each time an agent wonders who owns a service. That is the concrete reason they 
 not tools.
 
 **Prompts** (user-controlled workflow templates): `triage_incident`, `write_postmortem`,
-`severity_review`. The dashboard's launcher discovers these via `list_prompts()` — the catalogue of
+`severity_review`. The dashboard's launcher discovers these via `list_prompts()` - the catalogue of
 *what the system can be asked to do* lives on the server, not hardcoded in the client.
 
 The server is fully testable with zero API spend over an in-memory transport
@@ -124,32 +124,32 @@ Each is a small module in [`src/aegis/harness/`](src/aegis/harness/); together t
 | **Streaming** | [`client.py`](src/aegis/harness/client.py) | Always streams (large `max_tokens`); adaptive thinking with summarized display; deltas → SSE → dashboard. |
 | **Observability** | [`telemetry.py`](src/aegis/harness/telemetry.py) | OTel span tree `run → agent → turn → {model, tool}` with `gen_ai.*` + cost/cache attributes → Jaeger. |
 | **Durability** | [`store/`](src/aegis/store/) + [`events.py`](src/aegis/harness/events.py) | SQLite runs/spans/tool-calls/approvals/checkpoints + an append-only event log so a late/reconnecting dashboard replays instead of missing events. Checkpoint after every turn → `aegis run --resume`. |
-| **Structured output** | [`types.py`](src/aegis/types.py) | Investigator verdicts and the RCA via `output_config.format` JSON schema — validated at the API layer. |
+| **Structured output** | [`types.py`](src/aegis/types.py) | Investigator verdicts and the RCA via `output_config.format` JSON schema - validated at the API layer. |
 
-Model is `claude-opus-4-8` throughout; **effort** — not model tier — is the cost lever (coordinator/
+Model is `claude-opus-4-8` throughout; **effort** - not model tier - is the cost lever (coordinator/
 verifier `high`, investigators `medium`).
 
 ---
 
 ## The benchmark: a seeded incident world with ground truth
 
-[`mcp_server/env/`](mcp_server/env/) generates a deterministic 14-service estate — dependency
-graph, per-minute metrics, logs, deploys, distributed traces — from a seed, then injects exactly
+[`mcp_server/env/`](mcp_server/env/) generates a deterministic 14-service estate - dependency
+graph, per-minute metrics, logs, deploys, distributed traces - from a seed, then injects exactly
 one root cause from six classes and records ground truth (`root_cause_class`, `culprit_service`,
 `causal_event_ids`):
 
 `bad_deploy` · `dependency_saturation` · `config_change` · `resource_exhaustion` · `data_anomaly`
-· `network_partition` — plus **clean** windows (to measure false positives) and **injection**
+· `network_partition` - plus **clean** windows (to measure false positives) and **injection**
 windows (a log line carrying an instruction-shaped payload).
 
 Two properties make the numbers mean something:
 
 - **The alert fires upstream of the fault.** Symptoms propagate up the call graph, so the paging
-  service is almost never the culprit — triage means walking the graph *down*. Each fault class is
+  service is almost never the culprit - triage means walking the graph *down*. Each fault class is
   shaped so its *observable* signature distinguishes it from the other five.
 - **Every scenario is validated at generation time.** A reference check re-derives the fault from
   the observable data alone and fails loudly (`validation failures: N`) if an injector didn't take.
-  A scenario that can't be solved from telemetry is a broken scenario, not a hard one — shipping it
+  A scenario that can't be solved from telemetry is a broken scenario, not a hard one - shipping it
   would silently deflate every accuracy number. Replay is **byte-identical across machines**
   (no `datetime.now`, no transcendental RNG), so the eval and the MCP server never disagree.
 
@@ -159,8 +159,8 @@ Two properties make the numbers mean something:
 against ground truth: **root-cause class accuracy**, **culprit accuracy**, **evidence
 precision/recall** (did it cite the *actual* causal events, or plausible-looking ones?),
 **false-positive rate** on clean windows, **injection resistance**, and cost / tokens / cache-hit
-rate / latency. Ablation arms — `single_agent`, `no_verifier`, `full`, and an investigator effort
-sweep — all run from one code path so the comparison is apples-to-apples.
+rate / latency. Ablation arms - `single_agent`, `no_verifier`, `full`, and an investigator effort
+sweep - all run from one code path so the comparison is apples-to-apples.
 
 ```bash
 uv run python evals/run_eval.py --scenarios evals/scenarios.jsonl --mock       # pipeline check
@@ -172,7 +172,7 @@ uv run python evals/charts.py                                                   
 ### Results
 
 Real numbers from a **live Claude Opus 4.8 run**, 6 scenarios per arm (`make eval-live`). This is a
-small sample — treat it as a demonstration of the methodology and a directional signal, not a
+small sample - treat it as a demonstration of the methodology and a directional signal, not a
 statistically tight benchmark; per-fault-class accuracy is ~1 scenario per cell, and injection
 resistance is n=1. The harness, metrics, and generator scale to as many scenarios as budget allows.
 
@@ -195,19 +195,19 @@ resistance is n=1. The harness, metrics, and generator scale to as many scenario
 
 What the data actually shows, stated honestly at this sample size:
 
-- **Fanning out raises root-cause accuracy** — parallel investigators lift class accuracy from 0.83
+- **Fanning out raises root-cause accuracy** - parallel investigators lift class accuracy from 0.83
   to 1.00 over the single agent.
-- **Topology, not the lone agent, resisted prompt injection** — the single agent was talked into a
+- **Topology, not the lone agent, resisted prompt injection** - the single agent was talked into a
   wrong conclusion by a planted log line (0.00); both multi-agent arms held (1.00). Striking, but
-  n=1 injection scenario — a signal to test harder, not a headline to overclaim.
-- **No hallucinated incidents** — every arm scored 0.00 false-positive on clean windows, and
+  n=1 injection scenario - a signal to test harder, not a headline to overclaim.
+- **No hallucinated incidents** - every arm scored 0.00 false-positive on clean windows, and
   evidence precision stayed high (0.89–0.97): agents cite real causal events, not plausible fiction.
-- **The verifier's cost isn't yet justified at this n** — full vs. no-verifier both hit 1.00 class
+- **The verifier's cost isn't yet justified at this n** - full vs. no-verifier both hit 1.00 class
   accuracy, so the adversarial pass doubled cost ($0.82 → $1.81) without a visible accuracy gain
   here. Its value should surface on ambiguous cases a larger sweep would include; the honest current
   read is "not demonstrated at n=6."
 
-The point isn't these six numbers — it's that the harness *produces* them, reproducibly, with
+The point isn't these six numbers - it's that the harness *produces* them, reproducibly, with
 ground truth, so the topology and cost questions are answerable with data instead of vibes.
 
 ---
@@ -215,12 +215,12 @@ ground truth, so the topology and cost questions are answerable with data instea
 ## Verified by an adversarial review
 
 The harness core was reviewed by a fan-out of adversarial agents (5 dimensions × find →
-independently verify), which surfaced **8 confirmed defects my own 125 tests had missed** —
+independently verify), which surfaced **8 confirmed defects my own 125 tests had missed** -
 including two HIGH-severity ones: resuming from a mid-tool-execution crash replayed a message list
 ending in an unanswered `tool_use` (a guaranteed API 400), and the live CLI defaulted to
 auto-approving write actions (the human gate failed *open*). All eight are fixed, each with a
 regression test in [`tests/test_review_fixes.py`](tests/test_review_fixes.py). Finding and fixing
-these is part of the project, not a footnote — it is what "production" means.
+these is part of the project, not a footnote - it is what "production" means.
 
 ---
 
@@ -248,7 +248,7 @@ make up        # docker compose (api + mcp + web + jaeger)
 ```
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs lint, strict types, the full
-offline test suite, scenario-generation validation, and an end-to-end mock run — with **no API
+offline test suite, scenario-generation validation, and an end-to-end mock run - with **no API
 key**, because a network call in CI is a bug.
 
 ## License
