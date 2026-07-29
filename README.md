@@ -6,8 +6,10 @@ A coordinator agent plans hypotheses about a live incident, fans out parallel in
 against a custom MCP server, adversarially verifies what survives, and writes a cited RCA -
 pausing for human approval before it proposes anything that touches production.
 
-> **New here?** Read **[How Aegis works - the 2-minute version](docs/HOW_IT_WORKS.md)**: what it
-> does, what an RCA is, and where the (fake) telemetry comes from, with diagrams. No setup required.
+A live demonstration can be found at [agentic-rca.leonardeshun.com](https://agentic-rca.leonardeshun.com)
+
+> **[How Aegis works - the 2-minute version](docs/HOW_IT_WORKS.md)**: what it
+> does, what an RCA is, and where the telemetry comes from, with diagrams. No setup required.
 
 The agent loop is **hand-written on the Anthropic Messages API**. Retries, token/cost budgets,
 prompt-cache prefixes, context management, tool permissions, crash recovery, and OpenTelemetry

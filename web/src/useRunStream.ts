@@ -183,9 +183,13 @@ function reduce(state: RunState, event: AegisEvent): RunState {
   }
 }
 
-type Action = { kind: "reset"; runId: string } | { kind: "event"; event: AegisEvent };
+type Action =
+  | { kind: "reset"; runId: string }
+  | { kind: "clear" }
+  | { kind: "event"; event: AegisEvent };
 
 function rootReducer(state: RunState | null, action: Action): RunState | null {
+  if (action.kind === "clear") return null;
   if (action.kind === "reset") return initial(action.runId);
   if (!state) return state;
   return reduce(state, action.event);
@@ -211,7 +215,15 @@ export function useRunStream(runId: string | null): RunState | null {
   const openFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!runId) return;
+    if (!runId) {
+      // Deselecting a run (e.g. clicking "How it works") must drop the prior run's
+      // state, otherwise the stale object keeps <RunView> mounted over <HowItWorks>.
+      if (openFor.current !== null) {
+        openFor.current = null;
+        dispatch({ kind: "clear" });
+      }
+      return;
+    }
     // Fresh state whenever the selected run changes, before the stream opens.
     if (openFor.current !== runId) {
       openFor.current = runId;
@@ -234,7 +246,9 @@ export function useRunStream(runId: string | null): RunState | null {
     return () => source.close();
   }, [runId]);
 
+  // No run selected → no run state, so <HowItWorks> shows.
+  if (!runId) return null;
   // Between selecting a run and the reset landing, hand back a seeded object so the view renders.
-  if (runId && (!state || state.runId !== runId)) return initial(runId);
+  if (!state || state.runId !== runId) return initial(runId);
   return state;
 }

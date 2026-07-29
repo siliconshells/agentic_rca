@@ -56,7 +56,7 @@ export function Launcher({
         </div>
         <label className="toggle">
           <input type="checkbox" checked={mock} onChange={(e) => setMock(e.target.checked)} />
-          Mock model (no API key, no spend)
+          Mock model (no spend - Uncheck to use real LLM API)
         </label>
         <button
           className="launch-btn"

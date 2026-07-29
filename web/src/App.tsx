@@ -66,9 +66,9 @@ export function App() {
           <h1>
             <span className="shield">◈</span> Aegis
           </h1>
-          <p>Agentic incident triage &amp; RCA</p>
+          <p>Agentic incident triage &amp; Root Cause Analysis (RCA)</p>
           <button className="brand-link" onClick={() => setActiveRun(null)}>
-            how it works
+            How it works
           </button>
         </div>
         <Launcher scenarios={scenarios} onLaunch={launch} />

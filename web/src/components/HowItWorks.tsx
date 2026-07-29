@@ -1,7 +1,7 @@
 // A static, in-app "understand Aegis in 30 seconds" panel. Shown as the empty
 // state before a run is selected; doubles as a legend for the run-view lane colors.
 // The full version with diagrams lives in docs/HOW_IT_WORKS.md — link below.
-const REPO_DOC_URL = "https://github.com/leonardeshun/aegis/blob/main/docs/HOW_IT_WORKS.md";
+const REPO_DOC_URL = "https://github.com/siliconshells/agentic_rca/blob/main/docs/HOW_IT_WORKS.md";
 
 const STEPS = [
   { label: "Alert fires", role: "warn" },
