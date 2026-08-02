@@ -11,7 +11,7 @@ A live demonstration can be found at [agentic-rca.leonardeshun.com](https://agen
 > **[How Aegis works - the 2-minute version](docs/HOW_IT_WORKS.md)**: what it
 > does, what an RCA is, and where the telemetry comes from, with diagrams. No setup required.
 
-The agent loop is **hand-written on the Anthropic Messages API**. Retries, token/cost budgets,
+The agent loop is **written on the Anthropic Messages API**. Retries, token/cost budgets,
 prompt-cache prefixes, context management, tool permissions, crash recovery, and OpenTelemetry
 tracing are the project. Everything runs against a **deterministic
 seeded incident world with ground-truth root causes**, so accuracy, evidence precision, injection
