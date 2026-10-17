@@ -18,7 +18,7 @@ Aegis's RCA cites the exact log lines, metric anomalies, and deploy records that
 conclusion, plus a confidence score and the hypotheses it ruled out. Without cited evidence, you
 fix the wrong thing and the incident comes back at 3 a.m.
 
-## The cast: four roles, one run
+## Four roles in one run
 
 An **agent** here is an AI model given a job and a set of tools, run in a loop: look at the
 results, decide the next tool call, repeat. Aegis uses four roles:
